@@ -16,7 +16,7 @@ const types = ["بارد فقط", "بارد ساخن"];
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const brandFromUrl = searchParams.get("brand");
-  
+
   const [selectedBrand, setSelectedBrand] = useState(brandFromUrl || "الكل");
   const [selectedCapacity, setSelectedCapacity] = useState("الكل");
   const [selectedType, setSelectedType] = useState("الكل");
@@ -149,7 +149,7 @@ const Products = () => {
                   <Loader2 className="h-10 w-10 animate-spin text-secondary" />
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                   {filteredProducts.map((product, index) => (
                     <ProductCard key={product.id} product={product} index={index} />
                   ))}
@@ -159,8 +159,8 @@ const Products = () => {
               {!isLoading && filteredProducts.length === 0 && (
                 <div className="text-center py-16">
                   <p className="text-xl text-muted-foreground">لا توجد منتجات تطابق معايير البحث</p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="mt-4"
                     onClick={resetFilters}
                   >

@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { Product } from "@/data/products";
+import { Product } from "@/hooks/useProducts";
 import { toast } from "sonner";
 
 interface CompareContextType {
   items: Product[];
   addToCompare: (product: Product) => void;
-  removeFromCompare: (productId: number) => void;
-  isInCompare: (productId: number) => boolean;
+  removeFromCompare: (productId: string) => void;
+  isInCompare: (productId: string) => boolean;
   clearCompare: () => void;
 }
 
@@ -36,11 +36,11 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
     toast.success("تمت الإضافة للمقارنة");
   };
 
-  const removeFromCompare = (productId: number) => {
+  const removeFromCompare = (productId: string) => {
     setItems((prev) => prev.filter((item) => item.id !== productId));
   };
 
-  const isInCompare = (productId: number) => {
+  const isInCompare = (productId: string) => {
     return items.some((item) => item.id === productId);
   };
 

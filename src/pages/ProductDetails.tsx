@@ -24,6 +24,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCompare } from "@/contexts/CompareContext";
 import { toast } from "sonner";
+import ProductReviews from "@/components/ProductReviews";
 
 // Fallback product images
 import acProduct1 from "@/assets/products/ac-white-1.png";
@@ -77,39 +78,12 @@ const ProductDetails = () => {
     );
   }
 
-  const productIdNum = parseInt(product.id) || 1;
-  const isWishlisted = isInWishlist(productIdNum);
-  const isCompared = isInCompare(productIdNum);
+  const isWishlisted = isInWishlist(product.id);
+  const isCompared = isInCompare(product.id);
 
-  // Generate images for the product
-  const getProductImage = () => {
-    if (product.image_url) {
-      return product.image_url;
-    }
-    return fallbackImages[0];
-  };
-
-  const images = [
-    getProductImage(),
-    fallbackImages[1],
-    fallbackImages[2],
-    fallbackImages[3],
-  ];
-
-  const createCompatibleProduct = () => ({
-    id: productIdNum,
-    name: product.name,
-    brand: product.brand,
-    price: product.price,
-    oldPrice: product.oldPrice || undefined,
-    rating: product.rating,
-    reviews: product.reviews,
-    capacity: product.capacity || "",
-    type: product.type || "",
-    features: product.features,
-    model: product.model || undefined,
-    image: product.image_url || fallbackImages[0],
-  });
+  // Get the single product image (no fake thumbnails)
+  const productImage = product.image_url || fallbackImages[0];
+  const images = [productImage];
 
   const handleAddToCart = () => {
     if (product.stock <= 0) {
@@ -126,20 +100,20 @@ const ProductDetails = () => {
 
   const handleWishlist = () => {
     if (isWishlisted) {
-      removeFromWishlist(productIdNum);
+      removeFromWishlist(product.id);
       toast.success("تمت الإزالة من المفضلة");
     } else {
-      addToWishlist(createCompatibleProduct());
+      addToWishlist(product);
       toast.success("تمت الإضافة للمفضلة");
     }
   };
 
   const handleCompare = () => {
     if (isCompared) {
-      removeFromCompare(productIdNum);
+      removeFromCompare(product.id);
       toast.success("تمت الإزالة من المقارنة");
     } else {
-      addToCompare(createCompatibleProduct());
+      addToCompare(product);
     }
   };
 
@@ -435,6 +409,13 @@ const ProductDetails = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Customer Reviews */}
+          <section className="py-12">
+            <div className="container mx-auto px-4">
+              <ProductReviews productId={product.id} />
             </div>
           </section>
 

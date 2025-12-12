@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import ScrollToTop from "@/components/ScrollToTop";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CompareProvider } from "@/contexts/CompareContext";
@@ -29,6 +30,7 @@ const AdminImageEnhancer = lazy(() => import("./pages/AdminImageEnhancer"));
 const ProductsAdmin = lazy(() => import("./pages/admin/ProductsAdmin"));
 const OrdersAdmin = lazy(() => import("./pages/admin/OrdersAdmin"));
 const BrandsAdmin = lazy(() => import("./pages/admin/BrandsAdmin"));
+const SettingsAdmin = lazy(() => import("./pages/admin/SettingsAdmin"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
@@ -95,10 +97,12 @@ const App = () => (
                           <Route path="/admin/products" element={<ProtectedAdminRoute><ProductsAdmin /></ProtectedAdminRoute>} />
                           <Route path="/admin/orders" element={<ProtectedAdminRoute><OrdersAdmin /></ProtectedAdminRoute>} />
                           <Route path="/admin/brands" element={<ProtectedAdminRoute><BrandsAdmin /></ProtectedAdminRoute>} />
+                          <Route path="/admin/settings" element={<ProtectedAdminRoute><SettingsAdmin /></ProtectedAdminRoute>} />
                           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
+                      <FloatingWhatsApp />
                     </BrowserRouter>
                   </TooltipProvider>
                 </CompareProvider>

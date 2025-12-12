@@ -27,24 +27,10 @@ const ProductsSection = () => {
     return fallbackImages[index % fallbackImages.length];
   };
 
-  const handleAddToCart = (e: React.MouseEvent, product: typeof products[0], index: number) => {
+  const handleAddToCart = (e: React.MouseEvent, product: typeof products[0]) => {
     e.preventDefault();
     e.stopPropagation();
-    const cartProduct = {
-      id: parseInt(product.id) || index + 1,
-      name: product.name,
-      brand: product.brand,
-      price: product.price,
-      oldPrice: product.oldPrice || undefined,
-      rating: product.rating,
-      reviews: product.reviews,
-      capacity: product.capacity || "",
-      type: product.type || "",
-      features: product.features,
-      model: product.model || undefined,
-      image: product.image_url || fallbackImages[index % fallbackImages.length],
-    };
-    addToCart(cartProduct);
+    addToCart(product);
     toast.success("تمت الإضافة إلى السلة");
   };
 
@@ -74,8 +60,8 @@ const ProductsSection = () => {
             <Loader2 className="h-10 w-10 animate-spin text-secondary" />
           </div>
         ) : (
-          /* Products Grid with staggered animations */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          /* Products Grid - 2 columns on mobile, 3 on desktop */
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-6">
             {featuredProducts.map((product, index) => (
               <div
                 key={product.id}
@@ -207,7 +193,7 @@ const ProductsSection = () => {
                       </Button>
                     </a>
                     <Button
-                      onClick={(e) => handleAddToCart(e, product, index)}
+                      onClick={(e) => handleAddToCart(e, product)}
                       className="w-full bg-secondary hover:bg-accent text-secondary-foreground gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg h-10"
                     >
                       <ShoppingCart className="h-4 w-4" />

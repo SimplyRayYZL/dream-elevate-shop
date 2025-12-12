@@ -33,38 +33,21 @@ const ProductCard = ({ product, index = 0, showCompare = true }: ProductCardProp
     return fallbackImages[index % fallbackImages.length];
   };
 
-  const productIdNum = parseInt(product.id) || index + 1;
-
-  const createCompatibleProduct = () => ({
-    id: productIdNum,
-    name: product.name,
-    brand: product.brand,
-    price: product.price,
-    oldPrice: product.oldPrice || undefined,
-    rating: product.rating,
-    reviews: product.reviews,
-    capacity: product.capacity || "",
-    type: product.type || "",
-    features: product.features,
-    model: product.model || undefined,
-    image: product.image_url || fallbackImages[index % fallbackImages.length],
-  });
-
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(createCompatibleProduct());
+    addToCart(product);
     toast.success("تمت الإضافة إلى السلة");
   };
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isInWishlist(productIdNum)) {
-      removeFromWishlist(productIdNum);
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id);
       toast.success("تمت الإزالة من المفضلة");
     } else {
-      addToWishlist(createCompatibleProduct());
+      addToWishlist(product);
       toast.success("تمت الإضافة للمفضلة");
     }
   };
@@ -72,11 +55,11 @@ const ProductCard = ({ product, index = 0, showCompare = true }: ProductCardProp
   const handleCompareToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isInCompare(productIdNum)) {
-      removeFromCompare(productIdNum);
+    if (isInCompare(product.id)) {
+      removeFromCompare(product.id);
       toast.success("تمت الإزالة من المقارنة");
     } else {
-      addToCompare(createCompatibleProduct());
+      addToCompare(product);
     }
   };
 
@@ -95,17 +78,17 @@ const ProductCard = ({ product, index = 0, showCompare = true }: ProductCardProp
           <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
             <button
               onClick={handleWishlistToggle}
-              className={`w-9 h-9 rounded-full shadow-md flex items-center justify-center transition-all ${isInWishlist(productIdNum)
+              className={`w-9 h-9 rounded-full shadow-md flex items-center justify-center transition-all ${isInWishlist(product.id)
                 ? "bg-destructive text-white"
                 : "bg-card hover:bg-destructive hover:text-white"
                 }`}
             >
-              <Heart className={`h-4 w-4 ${isInWishlist(productIdNum) ? "fill-current" : ""}`} />
+              <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? "fill-current" : ""}`} />
             </button>
             {showCompare && (
               <button
                 onClick={handleCompareToggle}
-                className={`w-9 h-9 rounded-full shadow-md flex items-center justify-center transition-all ${isInCompare(productIdNum)
+                className={`w-9 h-9 rounded-full shadow-md flex items-center justify-center transition-all ${isInCompare(product.id)
                   ? "bg-secondary text-secondary-foreground"
                   : "bg-card hover:bg-secondary hover:text-secondary-foreground"
                   }`}

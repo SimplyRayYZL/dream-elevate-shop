@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Product } from "@/data/products";
+import { Product } from "@/hooks/useProducts";
 
 interface WishlistContextType {
   items: Product[];
   addToWishlist: (product: Product) => void;
-  removeFromWishlist: (productId: number) => void;
-  isInWishlist: (productId: number) => boolean;
+  removeFromWishlist: (productId: string) => void;
+  isInWishlist: (productId: string) => boolean;
   clearWishlist: () => void;
 }
 
@@ -38,11 +38,11 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const removeFromWishlist = (productId: number) => {
+  const removeFromWishlist = (productId: string) => {
     setItems((prev) => prev.filter((item) => item.id !== productId));
   };
 
-  const isInWishlist = (productId: number) => {
+  const isInWishlist = (productId: string) => {
     return items.some((item) => item.id === productId);
   };
 

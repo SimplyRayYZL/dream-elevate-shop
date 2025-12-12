@@ -3,6 +3,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import HeroBanner from "@/components/home/HeroBanner";
 import BrandsSection from "@/components/home/BrandsSection";
+import BrandBanners from "@/components/home/BrandBanners";
 import ProductsSection from "@/components/home/ProductsSection";
 import FeaturesSection from "@/components/home/FeaturesSection";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
@@ -63,9 +64,9 @@ const Index = () => {
         <main className="flex-grow">
           <HeroBanner />
           <BrandsSection />
+          <BrandBanners />
           <ProductsSection />
-          <PromoBanner variant="quality" />
-          <FeaturesSection />
+          <PromoBanner variant="features" />
           <TestimonialsSection />
           <PromoBanner variant="contact" />
         </main>

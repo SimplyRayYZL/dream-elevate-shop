@@ -1,23 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 
-import acProduct5 from "@/assets/products/ac-product-5.png";
-import acProduct6 from "@/assets/products/ac-product-6.png";
-import acProduct7 from "@/assets/products/ac-product-7.png";
-import acProduct8 from "@/assets/products/ac-product-8.png";
-import acProduct9 from "@/assets/products/ac-product-9.png";
-import acProduct10 from "@/assets/products/ac-product-10.png";
+// Fallback images
+import acProduct1 from "@/assets/products/ac-white-1.png";
+import acProduct2 from "@/assets/products/ac-white-2.png";
+import acProduct3 from "@/assets/products/ac-white-3.png";
+import acProduct4 from "@/assets/products/ac-white-4.png";
 
-const productImages = [acProduct5, acProduct6, acProduct7, acProduct8, acProduct9, acProduct10];
-
-const getProductImage = (index: number) => {
-  return productImages[index % productImages.length];
-};
+const fallbackImages = [acProduct1, acProduct2, acProduct3, acProduct4];
 
 interface SearchDialogProps {
   open: boolean;
@@ -26,35 +21,68 @@ interface SearchDialogProps {
 
 const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState(products.slice(0, 5));
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const navigate = useNavigate();
+  const { data: products = [], isLoading } = useProducts();
 
-  useEffect(() => {
-    if (query.trim() === "") {
-      setResults(products.slice(0, 5));
-      return;
-    }
-
-    const filtered = products.filter(
+  // Filter products based on query
+  const results = query.trim() === ""
+    ? products.slice(0, 5)
+    : products.filter(
       (product) =>
         product.name.toLowerCase().includes(query.toLowerCase()) ||
         product.brand.toLowerCase().includes(query.toLowerCase()) ||
-        product.capacity.includes(query)
-    );
-    setResults(filtered.slice(0, 8));
-  }, [query]);
+        (product.capacity && product.capacity.includes(query)) ||
+        (product.model && product.model.toLowerCase().includes(query.toLowerCase()))
+    ).slice(0, 8);
 
-  const handleProductClick = (productId: number) => {
+  const getProductImage = (product: typeof products[0], index: number) => {
+    return product.image_url || fallbackImages[index % fallbackImages.length];
+  };
+
+  const handleProductClick = (productId: string) => {
     onOpenChange(false);
     setQuery("");
+    setSelectedIndex(-1);
     navigate(`/product/${productId}`);
   };
 
   const handleViewAll = () => {
     onOpenChange(false);
+    if (query.trim()) {
+      navigate(`/products?search=${encodeURIComponent(query)}`);
+    } else {
+      navigate("/products");
+    }
     setQuery("");
-    navigate("/products");
   };
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (selectedIndex >= 0 && results[selectedIndex]) {
+          handleProductClick(results[selectedIndex].id);
+        } else if (query.trim()) {
+          handleViewAll();
+        }
+        break;
+    }
+  };
+
+  // Reset selection when query changes
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [query]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,13 +90,14 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">البحث في المنتجات</DialogTitle>
         </DialogHeader>
-        
+
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="ابحث عن تكييف..."
+            placeholder="ابحث عن تكييف، ماركة، أو موديل..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="pr-10 text-lg py-6"
             autoFocus
           />
@@ -85,16 +114,21 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
         </div>
 
         <div className="mt-4 max-h-[50vh] overflow-y-auto space-y-2">
-          {results.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+            </div>
+          ) : results.length > 0 ? (
             <>
               {results.map((product, index) => (
                 <button
                   key={product.id}
                   onClick={() => handleProductClick(product.id)}
-                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-muted transition-colors text-right"
+                  className={`w-full flex items-center gap-4 p-3 rounded-xl hover:bg-muted transition-colors text-right ${index === selectedIndex ? "bg-muted" : ""
+                    }`}
                 >
                   <img
-                    src={getProductImage(index)}
+                    src={getProductImage(product, index)}
                     alt={product.name}
                     className="w-16 h-16 object-contain rounded-lg bg-muted"
                   />
@@ -102,8 +136,12 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
                     <h4 className="font-semibold text-foreground line-clamp-1">{product.name}</h4>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{product.brand}</span>
-                      <span>•</span>
-                      <span>{product.capacity}</span>
+                      {product.capacity && (
+                        <>
+                          <span>•</span>
+                          <span>{product.capacity}</span>
+                        </>
+                      )}
                     </div>
                     <p className="text-secondary font-bold mt-1">
                       {product.price.toLocaleString()} جنيه
@@ -116,7 +154,10 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
                 className="w-full mt-4"
                 onClick={handleViewAll}
               >
-                عرض جميع المنتجات
+                عرض جميع المنتجات {query && `(${products.filter(p =>
+                  p.name.toLowerCase().includes(query.toLowerCase()) ||
+                  p.brand.toLowerCase().includes(query.toLowerCase())
+                ).length} نتيجة)`}
               </Button>
             </>
           ) : (
