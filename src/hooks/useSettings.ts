@@ -73,6 +73,12 @@ export interface SiteSettings {
     seo_description: string;
     seo_keywords: string;
     og_image: string;
+    seo_robots: string;
+    seo_canonical_url: string;
+    seo_language: string;
+    seo_author: string;
+    structured_data_enabled: boolean;
+    sitemap_enabled: boolean;
 
     // Content
     homepage_hero_title: string;
@@ -152,6 +158,12 @@ const DEFAULT_SETTINGS: SiteSettings = {
     seo_description: "الوكيل المعتمد لأكبر الماركات العالمية للتكييفات في مصر. كاريير، ميديا، شارب، فريش وأكثر.",
     seo_keywords: "تكييف، تكييفات، كاريير، ميديا، شارب، فريش، مصر",
     og_image: "/og-image.jpg",
+    seo_robots: "index, follow",
+    seo_canonical_url: "",
+    seo_language: "ar",
+    seo_author: "Dream For Trade",
+    structured_data_enabled: true,
+    sitemap_enabled: true,
 
     // Enhanced content
     homepage_hero_title: "تكييفات بأفضل الأسعار",

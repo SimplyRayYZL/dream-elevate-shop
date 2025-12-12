@@ -37,6 +37,201 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSiteSettings, useUpdateSettings, SiteSettings, DEFAULT_SETTINGS, ShippingArea, Banner } from "@/hooks/useSettings";
 import { toast } from "sonner";
 
+// SQL Script for initializing Supabase database
+const DATABASE_INIT_SQL = `-- =====================================================
+-- Dream For Trade - Database Initialization Script
+-- Run this in Supabase SQL Editor
+-- =====================================================
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- =====================================================
+-- PROFILES TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    full_name TEXT,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    city TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Profiles policies
+CREATE POLICY "Users can view own profile"
+    ON profiles FOR SELECT
+    USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+    ON profiles FOR UPDATE
+    USING (auth.uid() = id);
+
+CREATE POLICY "Enable insert for authenticated users"
+    ON profiles FOR INSERT
+    WITH CHECK (auth.uid() = id);
+
+-- Trigger to create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+    INSERT INTO public.profiles (id, full_name, email, phone)
+    VALUES (
+        new.id,
+        new.raw_user_meta_data->>'full_name',
+        new.email,
+        new.raw_user_meta_data->>'phone'
+    );
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- =====================================================
+-- BRANDS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS brands (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL,
+    name_en TEXT,
+    logo TEXT,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view brands"
+    ON brands FOR SELECT
+    USING (true);
+
+CREATE POLICY "Authenticated users can manage brands"
+    ON brands FOR ALL
+    USING (auth.role() = 'authenticated');
+
+-- =====================================================
+-- PRODUCTS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS products (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL,
+    name_en TEXT,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    original_price DECIMAL(10, 2),
+    category TEXT,
+    brand_id UUID REFERENCES brands(id),
+    image TEXT,
+    images TEXT[],
+    specifications JSONB,
+    is_active BOOLEAN DEFAULT true,
+    is_featured BOOLEAN DEFAULT false,
+    stock INTEGER DEFAULT 0,
+    cooling_capacity TEXT,
+    power_consumption TEXT,
+    warranty TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view products"
+    ON products FOR SELECT
+    USING (true);
+
+CREATE POLICY "Authenticated users can manage products"
+    ON products FOR ALL
+    USING (auth.role() = 'authenticated');
+
+-- =====================================================
+-- ORDERS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS orders (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id),
+    customer_name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    address TEXT NOT NULL,
+    city TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'pending',
+    payment_method TEXT DEFAULT 'cod',
+    subtotal DECIMAL(10, 2),
+    shipping_fee DECIMAL(10, 2) DEFAULT 0,
+    total DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own orders"
+    ON orders FOR SELECT
+    USING (auth.uid() = user_id OR user_id IS NULL);
+
+CREATE POLICY "Anyone can create orders"
+    ON orders FOR INSERT
+    WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can manage orders"
+    ON orders FOR ALL
+    USING (auth.role() = 'authenticated');
+
+-- =====================================================
+-- ORDER ITEMS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS order_items (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id),
+    product_name TEXT NOT NULL,
+    product_image TEXT,
+    quantity INTEGER NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view order items"
+    ON order_items FOR SELECT
+    USING (true);
+
+CREATE POLICY "Anyone can create order items"
+    ON order_items FOR INSERT
+    WITH CHECK (true);
+
+-- =====================================================
+-- SAMPLE DATA (Optional)
+-- =====================================================
+
+-- Insert sample brands
+INSERT INTO brands (name, name_en, logo, is_active, display_order) VALUES
+    ('كاريير', 'Carrier', '/brands/carrier.png', true, 1),
+    ('ميديا', 'Midea', '/brands/midea.png', true, 2),
+    ('شارب', 'Sharp', '/brands/sharp.png', true, 3),
+    ('فريش', 'Fresh', '/brands/fresh.png', true, 4),
+    ('يونيون اير', 'Unionaire', '/brands/unionaire.png', true, 5),
+    ('تورنيدو', 'Tornado', '/brands/tornado.png', true, 6)
+ON CONFLICT DO NOTHING;
+
+-- Done!
+SELECT 'Database initialized successfully!' as message;
+`;
+
 const SettingsAdmin = () => {
     const { data: settings, isLoading } = useSiteSettings();
     const updateSettings = useUpdateSettings();
@@ -884,12 +1079,76 @@ const SettingsAdmin = () => {
                                         rows={2}
                                     />
                                 </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>صورة المشاركة (OG Image URL)</Label>
+                                        <Input
+                                            value={formData.og_image}
+                                            onChange={(e) => handleChange("og_image", e.target.value)}
+                                            placeholder="/og-image.jpg"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Canonical URL</Label>
+                                        <Input
+                                            value={formData.seo_canonical_url}
+                                            onChange={(e) => handleChange("seo_canonical_url", e.target.value)}
+                                            placeholder="https://dreamfortrade.com"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3 className="text-lg font-semibold border-t pt-6">إعدادات متقدمة</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label>صورة المشاركة (OG Image URL)</Label>
+                                    <Label>Robots Meta Tag</Label>
                                     <Input
-                                        value={formData.og_image}
-                                        onChange={(e) => handleChange("og_image", e.target.value)}
-                                        placeholder="/og-image.jpg"
+                                        value={formData.seo_robots}
+                                        onChange={(e) => handleChange("seo_robots", e.target.value)}
+                                        placeholder="index, follow"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        مثال: index, follow أو noindex, nofollow
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>لغة الموقع</Label>
+                                    <Input
+                                        value={formData.seo_language}
+                                        onChange={(e) => handleChange("seo_language", e.target.value)}
+                                        placeholder="ar"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>اسم المؤلف</Label>
+                                    <Input
+                                        value={formData.seo_author}
+                                        onChange={(e) => handleChange("seo_author", e.target.value)}
+                                        placeholder="Dream For Trade"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
+                                <div className="flex items-center justify-between p-4 border rounded-xl">
+                                    <div>
+                                        <Label>Structured Data (JSON-LD)</Label>
+                                        <p className="text-xs text-muted-foreground">بيانات منظمة لمحركات البحث</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.structured_data_enabled}
+                                        onCheckedChange={(checked) => handleChange("structured_data_enabled", checked)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between p-4 border rounded-xl">
+                                    <div>
+                                        <Label>خريطة الموقع (Sitemap)</Label>
+                                        <p className="text-xs text-muted-foreground">تفعيل sitemap.xml</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.sitemap_enabled}
+                                        onCheckedChange={(checked) => handleChange("sitemap_enabled", checked)}
                                     />
                                 </div>
                             </div>
@@ -937,6 +1196,30 @@ const SettingsAdmin = () => {
                                 <p className="text-green-600 dark:text-green-400 text-sm">
                                     💡 <strong>ملاحظة:</strong> بعد تغيير إعدادات الداتابيز، اضغط "حفظ التغييرات" ثم أعد تحميل الصفحة.
                                 </p>
+                            </div>
+
+                            {/* SQL Initialization Script */}
+                            <div className="border-t pt-6 mt-6">
+                                <h3 className="text-lg font-semibold mb-4">🗄️ كود إنشاء الجداول (SQL)</h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    انسخ هذا الكود وشغله في SQL Editor في Supabase لإنشاء جميع الجداول المطلوبة:
+                                </p>
+                                <div className="relative">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="absolute top-2 left-2 z-10"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(DATABASE_INIT_SQL);
+                                            toast.success("تم نسخ الكود!");
+                                        }}
+                                    >
+                                        نسخ الكود
+                                    </Button>
+                                    <pre className="bg-muted p-4 rounded-xl overflow-x-auto text-xs max-h-96 overflow-y-auto" dir="ltr">
+                                        <code>{DATABASE_INIT_SQL}</code>
+                                    </pre>
+                                </div>
                             </div>
                         </TabsContent>
                     </Tabs>
